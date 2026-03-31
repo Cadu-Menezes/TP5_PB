@@ -1,0 +1,331 @@
+name: CI TP4 Integrado
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log CI context
+        run: |
+          echo "::group::CI Context"
+          echo "Workflow: $GITHUB_WORKFLOW"
+          echo "Job: $GITHUB_JOB"
+          echo "Run ID: $GITHUB_RUN_ID"
+          echo "Run Number: $GITHUB_RUN_NUMBER"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Ref: $GITHUB_REF"
+          echo "SHA: $GITHUB_SHA"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "::endgroup::"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and Test
+        run: mvn -B -ntp clean test
+
+      - name: Package
+        run: mvn -B -ntp -DskipTests package
+
+      - name: Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-artifacts
+          retention-days: 14
+          path: |
+            **/target/*.jar
+            **/target/surefire-reports/
+            **/target/site/jacoco/
+
+      - name: Build summary
+        if: always()
+        run: |
+          {
+            echo "## Build and Test Summary"
+            echo "- Job: build-test"
+            echo "- Event: $GITHUB_EVENT_NAME"
+            echo "- Ref: $GITHUB_REF"
+            echo "- SHA: $GITHUB_SHA"
+            echo "- Artifacts: ci-artifacts"
+          } >> $GITHUB_STEP_SUMMARY
+
+  manual-approval:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: build-test
+    runs-on: ubuntu-latest
+    environment:
+      name: approval-gate
+    steps:
+      - name: Log approval context
+        run: |
+          echo "::group::Manual Approval Context"
+          echo "Workflow: $GITHUB_WORKFLOW"
+          echo "Job: $GITHUB_JOB"
+          echo "Run ID: $GITHUB_RUN_ID"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Ref: $GITHUB_REF"
+          echo "::endgroup::"
+
+      - name: Await approval
+        run: echo "Aprovacao manual concluida."
+
+  teste-selenium-pos-deploy:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: manual-approval
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tp4_integrado_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: tp4_integrado_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      PORT: 7000
+      SELENIUM_BASE_URL: http://localhost:7000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log Selenium context
+        run: |
+          echo "::group::Selenium Context"
+          echo "Workflow: $GITHUB_WORKFLOW"
+          echo "Job: $GITHUB_JOB"
+          echo "Run ID: $GITHUB_RUN_ID"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Target URL: $SELENIUM_BASE_URL"
+          echo "::endgroup::"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Start application in background
+        run: |
+          mvn -B -ntp -DskipTests -Djacoco.skip=true install
+          mvn -B -ntp -f app-integrado/pom.xml -DskipTests exec:java > app-selenium.log 2>&1 &
+
+      - name: Wait for application
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:7000/ > /dev/null; then
+              echo "Aplicacao pronta para testes Selenium"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Aplicacao nao subiu a tempo"
+          tail -n 200 app-selenium.log || true
+          exit 1
+
+      - name: Run Selenium post-deploy tests
+        run: mvn -B -ntp -pl app-integrado -Dtest=TesteSeleniumPosDeploy test
+
+      - name: Upload Selenium reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-reports
+          retention-days: 7
+          path: app-integrado/target/surefire-reports/
+
+      - name: Upload Selenium app log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-app-log
+          retention-days: 7
+          path: app-selenium.log
+
+      - name: Selenium summary
+        if: always()
+        run: |
+          {
+            echo "## Selenium Summary"
+            echo "- Job: teste-selenium-pos-deploy"
+            echo "- Target URL: $SELENIUM_BASE_URL"
+            echo "- Artifacts: selenium-test-reports, selenium-app-log"
+          } >> $GITHUB_STEP_SUMMARY
+
+  sast-codeql:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log SAST context
+        run: |
+          echo "::group::SAST Context"
+          echo "Workflow: $GITHUB_WORKFLOW"
+          echo "Job: $GITHUB_JOB"
+          echo "Run ID: $GITHUB_RUN_ID"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Language: java"
+          echo "::endgroup::"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+
+      - name: SAST summary
+        if: always()
+        run: |
+          {
+            echo "## SAST Summary"
+            echo "- Job: sast-codeql"
+            echo "- Tool: CodeQL"
+            echo "- Language: java"
+          } >> $GITHUB_STEP_SUMMARY
+
+  dast-zap:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tp4_integrado_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: tp4_integrado_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      PORT: 7000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log DAST context
+        run: |
+          echo "::group::DAST Context"
+          echo "Workflow: $GITHUB_WORKFLOW"
+          echo "Job: $GITHUB_JOB"
+          echo "Run ID: $GITHUB_RUN_ID"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Target URL: http://localhost:7000"
+          echo "::endgroup::"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Start application in background
+        run: |
+          mvn -B -ntp -DskipTests -Djacoco.skip=true install
+          mvn -B -ntp -f app-integrado/pom.xml -DskipTests exec:java > app.log 2>&1 &
+
+      - name: Wait for application
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:7000/ > /dev/null; then
+              echo "Aplicacao pronta para DAST"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Aplicacao nao subiu a tempo"
+          tail -n 200 app.log || true
+          exit 1
+
+      - name: Prepare ZAP files permissions
+        run: |
+          touch zap.yaml zap-report.json zap-report.md zap-report.html
+          chmod 666 zap.yaml zap-report.json zap-report.md zap-report.html
+
+      - name: Run OWASP ZAP Baseline Scan
+        run: |
+          docker pull ghcr.io/zaproxy/zaproxy:stable
+          docker run --rm \
+            -v "$PWD:/zap/wrk/:rw" \
+            --network=host \
+            -t ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t http://localhost:7000 -I \
+            -J zap-report.json -w zap-report.md -r zap-report.html
+
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-zap-reports
+          retention-days: 7
+          path: |
+            zap-report.json
+            zap-report.md
+            zap-report.html
+
+      - name: Upload app log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-app-log
+          retention-days: 7
+          path: app.log
+
+      - name: DAST summary
+        if: always()
+        run: |
+          {
+            echo "## DAST Summary"
+            echo "- Job: dast-zap"
+            echo "- Tool: OWASP ZAP Baseline"
+            echo "- Target URL: http://localhost:7000"
+            echo "- Artifacts: dast-zap-reports, dast-app-log"
+          } >> $GITHUB_STEP_SUMMARY
+          

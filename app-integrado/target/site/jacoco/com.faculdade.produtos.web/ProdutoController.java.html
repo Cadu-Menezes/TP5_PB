@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProdutoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">TP4 App Integrado</a> &gt; <a href="index.source.html" class="el_package">com.faculdade.produtos.web</a> &gt; <span class="el_source">ProdutoController.java</span></div><h1>ProdutoController.java</h1><pre class="source lang-java linenums">package com.faculdade.produtos.web;
+
+import com.faculdade.produtos.exception.*;
+import com.faculdade.produtos.model.*;
+import com.faculdade.produtos.service.ProdutoService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/*
+    Controller REST para operações de produto.
+    Converte requisições HTTP em chamadas ao ProdutoService
+    e formata as respostas em JSON.
+*/
+public final class ProdutoController {
+
+    private final ProdutoService produtoService;
+    private final Gson gson;
+<span class="fc" id="L30">    private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy HH:mm:ss&quot;);</span>
+
+<span class="fc" id="L32">    public ProdutoController(ProdutoService produtoService) {</span>
+<span class="fc" id="L33">        this.produtoService = produtoService;</span>
+<span class="fc" id="L34">        this.gson = new GsonBuilder().setPrettyPrinting().create();</span>
+<span class="fc" id="L35">    }</span>
+
+    /*
+        Lista todos os produtos cadastrados.
+        GET /api/produtos
+    */
+    public void listarTodos(Context ctx) {
+        try {
+<span class="fc" id="L43">            List&lt;Produto&gt; produtos = produtoService.obterTodosProdutos();</span>
+<span class="fc" id="L44">            List&lt;Map&lt;String, Object&gt;&gt; resposta = produtos.stream()</span>
+<span class="fc" id="L45">                    .map(this::produtoParaMap)</span>
+<span class="fc" id="L46">                    .collect(Collectors.toList());</span>
+
+<span class="fc" id="L48">            ctx.json(resposta);</span>
+<span class="fc" id="L49">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L50">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro ao listar produtos&quot;, e.getMessage());</span>
+<span class="fc" id="L51">        }</span>
+<span class="fc" id="L52">    }</span>
+
+    /*
+        Busca um produto pelo ID.
+        GET /api/produtos/{id}
+    */
+    public void buscarPorId(Context ctx) {
+        try {
+<span class="fc" id="L60">            String id = ctx.pathParam(&quot;id&quot;);</span>
+<span class="fc" id="L61">            ProdutoId produtoId = ProdutoId.of(id);</span>
+<span class="fc" id="L62">            Produto produto = produtoService.obterProduto(produtoId);</span>
+
+<span class="fc" id="L64">            ctx.json(produtoParaMap(produto));</span>
+<span class="fc" id="L65">        } catch (ProdutoNaoEncontradoException e) {</span>
+<span class="fc" id="L66">            responderErro(ctx, HttpStatus.NOT_FOUND, &quot;Produto não encontrado&quot;, e.getMessage());</span>
+<span class="fc" id="L67">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L68">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;ID inválido&quot;, e.getMessage());</span>
+<span class="fc" id="L69">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L70">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="fc" id="L71">        }</span>
+<span class="fc" id="L72">    }</span>
+
+    /*
+        Cria um novo produto.
+        POST /api/produtos
+        Body: { nome, descricao, preco, categoria, quantidadeEstoque }
+    */
+    public void criarProduto(Context ctx) {
+        try {
+<span class="fc" id="L81">            JsonObject body = gson.fromJson(ctx.body(), JsonObject.class);</span>
+
+<span class="fc" id="L83">            Nome nome = Nome.of(obterString(body, &quot;nome&quot;));</span>
+<span class="fc" id="L84">            Descricao descricao = Descricao.of(obterString(body, &quot;descricao&quot;));</span>
+<span class="fc" id="L85">            Preco preco = Preco.of(new BigDecimal(obterString(body, &quot;preco&quot;)));</span>
+<span class="fc" id="L86">            Categoria categoria = Categoria.deString(obterString(body, &quot;categoria&quot;));</span>
+<span class="fc" id="L87">            QuantidadeEstoque estoque = QuantidadeEstoque.of(Integer.parseInt(obterString(body, &quot;quantidadeEstoque&quot;)));</span>
+
+<span class="fc" id="L89">            ProdutoId id = produtoService.criarProduto(nome, descricao, preco, categoria, estoque);</span>
+
+<span class="fc" id="L91">            Map&lt;String, Object&gt; resposta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L92">            resposta.put(&quot;id&quot;, id.getValue().toString());</span>
+<span class="fc" id="L93">            resposta.put(&quot;mensagem&quot;, &quot;Produto criado com sucesso&quot;);</span>
+
+<span class="fc" id="L95">            ctx.status(HttpStatus.CREATED).json(resposta);</span>
+
+<span class="fc" id="L97">        } catch (ProdutoJaExisteException e) {</span>
+<span class="fc" id="L98">            responderErro(ctx, HttpStatus.CONFLICT, &quot;Produto já existe&quot;, e.getMessage());</span>
+<span class="fc" id="L99">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L100">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, e.getMessage());</span>
+<span class="fc" id="L101">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L102">            System.err.println(&quot;ERRO SQL CRIAÇÃO: &quot; + e.getMessage());</span>
+<span class="fc" id="L103">            e.printStackTrace();</span>
+<span class="fc" id="L104">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro no banco de dados&quot;, e.getMessage());</span>
+<span class="nc" id="L105">        } catch (Exception e) {</span>
+<span class="nc" id="L106">            System.err.println(&quot;ERRO NÃO CAPTURADO EM criarProduto: &quot; + e.getMessage());</span>
+<span class="nc" id="L107">            e.printStackTrace();</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro inesperado&quot;, e.getMessage() != null ? e.getMessage() : &quot;Erro desconhecido&quot;);</span>
+<span class="fc" id="L109">        }</span>
+<span class="fc" id="L110">    }</span>
+
+    /*
+        Atualiza um produto existente.
+        PUT /api/produtos/{id}
+        Body: { nome, descricao, preco, categoria, quantidadeEstoque }
+    */
+    public void atualizarProduto(Context ctx) {
+        try {
+<span class="fc" id="L119">            String id = ctx.pathParam(&quot;id&quot;);</span>
+<span class="fc" id="L120">            ProdutoId produtoId = ProdutoId.of(id);</span>
+<span class="fc" id="L121">            JsonObject body = gson.fromJson(ctx.body(), JsonObject.class);</span>
+
+<span class="fc" id="L123">            Nome nome = Nome.of(obterString(body, &quot;nome&quot;));</span>
+<span class="fc" id="L124">            Descricao descricao = Descricao.of(obterString(body, &quot;descricao&quot;));</span>
+<span class="fc" id="L125">            Preco preco = Preco.of(new BigDecimal(obterString(body, &quot;preco&quot;)));</span>
+<span class="fc" id="L126">            Categoria categoria = Categoria.deString(obterString(body, &quot;categoria&quot;));</span>
+<span class="fc" id="L127">            QuantidadeEstoque estoque = QuantidadeEstoque.of(Integer.parseInt(obterString(body, &quot;quantidadeEstoque&quot;)));</span>
+
+<span class="fc" id="L129">            produtoService.atualizarProduto(produtoId, nome, descricao, preco, categoria, estoque);</span>
+
+<span class="fc" id="L131">            Map&lt;String, String&gt; resposta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L132">            resposta.put(&quot;mensagem&quot;, &quot;Produto atualizado com sucesso&quot;);</span>
+
+<span class="fc" id="L134">            ctx.json(resposta);</span>
+
+<span class="fc" id="L136">        } catch (ProdutoNaoEncontradoException e) {</span>
+<span class="fc" id="L137">            responderErro(ctx, HttpStatus.NOT_FOUND, &quot;Produto não encontrado&quot;, e.getMessage());</span>
+<span class="nc" id="L138">        } catch (ProdutoJaExisteException e) {</span>
+<span class="nc" id="L139">            responderErro(ctx, HttpStatus.CONFLICT, &quot;Nome já existe&quot;, e.getMessage());</span>
+<span class="nc" id="L140">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L141">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, e.getMessage());</span>
+<span class="fc" id="L142">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L143">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="pc" id="L144">        }</span>
+<span class="fc" id="L145">    }</span>
+
+    /*
+        Exclui um produto pelo ID.
+        DELETE /api/produtos/{id}
+    */
+    public void excluirProduto(Context ctx) {
+        try {
+<span class="fc" id="L153">            String id = ctx.pathParam(&quot;id&quot;);</span>
+<span class="fc" id="L154">            ProdutoId produtoId = ProdutoId.of(id);</span>
+<span class="fc" id="L155">            produtoService.excluirProduto(produtoId);</span>
+
+<span class="fc" id="L157">            Map&lt;String, String&gt; resposta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L158">            resposta.put(&quot;mensagem&quot;, &quot;Produto excluído com sucesso&quot;);</span>
+
+<span class="fc" id="L160">            ctx.json(resposta);</span>
+
+<span class="fc" id="L162">        } catch (ProdutoNaoEncontradoException e) {</span>
+<span class="fc" id="L163">            responderErro(ctx, HttpStatus.NOT_FOUND, &quot;Produto não encontrado&quot;, e.getMessage());</span>
+<span class="nc" id="L164">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L165">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;ID inválido&quot;, e.getMessage());</span>
+<span class="fc" id="L166">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L167">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="pc" id="L168">        }</span>
+<span class="fc" id="L169">    }</span>
+
+    /*
+        Atualiza o estoque de um produto.
+        PATCH /api/produtos/{id}/estoque
+        Body: { quantidade }
+    */
+    public void atualizarEstoque(Context ctx) {
+        try {
+<span class="fc" id="L178">            String id = ctx.pathParam(&quot;id&quot;);</span>
+<span class="fc" id="L179">            ProdutoId produtoId = ProdutoId.of(id);</span>
+<span class="fc" id="L180">            JsonObject body = gson.fromJson(ctx.body(), JsonObject.class);</span>
+
+<span class="fc" id="L182">            int quantidade = body.get(&quot;quantidade&quot;).getAsInt();</span>
+<span class="fc" id="L183">            QuantidadeEstoque novaQuantidade = QuantidadeEstoque.of(quantidade);</span>
+
+<span class="fc" id="L185">            produtoService.atualizarEstoque(produtoId, novaQuantidade);</span>
+
+<span class="fc" id="L187">            Map&lt;String, String&gt; resposta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L188">            resposta.put(&quot;mensagem&quot;, &quot;Estoque atualizado com sucesso&quot;);</span>
+
+<span class="fc" id="L190">            ctx.json(resposta);</span>
+
+<span class="nc" id="L192">        } catch (ProdutoNaoEncontradoException e) {</span>
+<span class="nc" id="L193">            responderErro(ctx, HttpStatus.NOT_FOUND, &quot;Produto não encontrado&quot;, e.getMessage());</span>
+<span class="fc" id="L194">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L195">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, e.getMessage());</span>
+<span class="fc" id="L196">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L197">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="pc" id="L198">        }</span>
+<span class="fc" id="L199">    }</span>
+
+    /*
+        Lista produtos por categoria.
+        GET /api/produtos/categoria/{categoria}
+    */
+    public void listarPorCategoria(Context ctx) {
+        try {
+<span class="fc" id="L207">            String categoriaStr = ctx.pathParam(&quot;categoria&quot;);</span>
+<span class="fc" id="L208">            Categoria categoria = Categoria.deString(categoriaStr);</span>
+<span class="fc" id="L209">            List&lt;Produto&gt; produtos = produtoService.obterProdutosPorCategoria(categoria);</span>
+
+<span class="fc" id="L211">            List&lt;Map&lt;String, Object&gt;&gt; resposta = produtos.stream()</span>
+<span class="fc" id="L212">                    .map(this::produtoParaMap)</span>
+<span class="fc" id="L213">                    .collect(Collectors.toList());</span>
+
+<span class="fc" id="L215">            ctx.json(resposta);</span>
+
+<span class="fc" id="L217">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L218">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Categoria inválida&quot;, e.getMessage());</span>
+<span class="fc" id="L219">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L220">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="fc" id="L221">        }</span>
+<span class="fc" id="L222">    }</span>
+
+    /*
+        Lista produtos com estoque baixo.
+        GET /api/produtos/estoque/baixo?limite=5
+    */
+    public void listarEstoqueBaixo(Context ctx) {
+        try {
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">            int limite = Integer.parseInt(ctx.queryParam(&quot;limite&quot;) != null ? ctx.queryParam(&quot;limite&quot;) : &quot;5&quot;);</span>
+<span class="fc" id="L231">            List&lt;Produto&gt; produtos = produtoService.obterProdutosComEstoqueBaixo(limite);</span>
+
+<span class="fc" id="L233">            List&lt;Map&lt;String, Object&gt;&gt; resposta = produtos.stream()</span>
+<span class="fc" id="L234">                    .map(this::produtoParaMap)</span>
+<span class="fc" id="L235">                    .collect(Collectors.toList());</span>
+
+<span class="fc" id="L237">            ctx.json(resposta);</span>
+
+<span class="fc" id="L239">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L240">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Parâmetro inválido&quot;, &quot;Limite deve ser um número inteiro&quot;);</span>
+<span class="fc" id="L241">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L242">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="fc" id="L243">        }</span>
+<span class="fc" id="L244">    }</span>
+
+    /*
+        Lista todas as categorias disponíveis.
+        GET /api/categorias
+    */
+    public void listarCategorias(Context ctx) {
+<span class="fc" id="L251">        List&lt;Map&lt;String, String&gt;&gt; categorias = Arrays.stream(Categoria.values())</span>
+<span class="fc" id="L252">                .map(cat -&gt; {</span>
+<span class="fc" id="L253">                    Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L254">                    map.put(&quot;valor&quot;, cat.name());</span>
+<span class="fc" id="L255">                    map.put(&quot;nome&quot;, cat.getNomeExibicao());</span>
+<span class="fc" id="L256">                    map.put(&quot;descricao&quot;, cat.getDescricao());</span>
+<span class="fc" id="L257">                    return map;</span>
+                })
+<span class="fc" id="L259">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L261">        ctx.json(categorias);</span>
+<span class="fc" id="L262">    }</span>
+
+    /*
+        Retorna estatísticas gerais dos produtos.
+        GET /api/estatisticas
+    */
+    public void obterEstatisticas(Context ctx) {
+        try {
+<span class="fc" id="L270">            long total = produtoService.obterTotalDeProdutos();</span>
+<span class="fc" id="L271">            List&lt;Produto&gt; semEstoque = produtoService.obterProdutosSemEstoque();</span>
+<span class="fc" id="L272">            List&lt;Produto&gt; estoqueBaixo = produtoService.obterProdutosComEstoqueBaixo(5);</span>
+
+            // Filtrar apenas os que têm estoque entre 1 e 5 (excluir os sem estoque)
+<span class="fc" id="L275">            long estoqueBaixoCount = estoqueBaixo.stream()</span>
+<span class="fc bfc" id="L276" title="All 2 branches covered.">                    .filter(p -&gt; p.getQuantidadeEstoque().getValue() &gt; 0)</span>
+<span class="fc" id="L277">                    .count();</span>
+
+<span class="fc" id="L279">            Map&lt;String, Object&gt; stats = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L280">            stats.put(&quot;totalProdutos&quot;, total);</span>
+<span class="fc" id="L281">            stats.put(&quot;produtosSemEstoque&quot;, semEstoque.size());</span>
+<span class="fc" id="L282">            stats.put(&quot;produtosEstoqueBaixo&quot;, estoqueBaixoCount);</span>
+
+<span class="fc" id="L284">            ctx.json(stats);</span>
+
+<span class="fc" id="L286">        } catch (ExcecaoBancoDados e) {</span>
+<span class="fc" id="L287">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="fc" id="L288">        }</span>
+<span class="fc" id="L289">    }</span>
+
+    // Métodos auxiliares
+
+    /*
+        Converte um Produto em Map para serialização JSON.
+    */
+    private Map&lt;String, Object&gt; produtoParaMap(Produto produto) {
+<span class="fc" id="L297">        Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L298">        map.put(&quot;id&quot;, produto.getId().getValue().toString());</span>
+<span class="fc" id="L299">        map.put(&quot;nome&quot;, produto.getNome().getValue());</span>
+<span class="fc" id="L300">        map.put(&quot;descricao&quot;, produto.getDescricao().getValue());</span>
+<span class="fc" id="L301">        map.put(&quot;preco&quot;, produto.getPreco().getValue());</span>
+<span class="fc" id="L302">        map.put(&quot;categoria&quot;, produto.getCategoria().name());</span>
+<span class="fc" id="L303">        map.put(&quot;categoriaNome&quot;, produto.getCategoria().getNomeExibicao());</span>
+<span class="fc" id="L304">        map.put(&quot;quantidadeEstoque&quot;, produto.getQuantidadeEstoque().getValue());</span>
+<span class="fc" id="L305">        map.put(&quot;criadoEm&quot;, produto.getCriadoEm().format(FORMATO_DATA));</span>
+<span class="fc" id="L306">        map.put(&quot;atualizadoEm&quot;, produto.getAtualizadoEm().format(FORMATO_DATA));</span>
+<span class="fc" id="L307">        return map;</span>
+    }
+
+    /*
+        Cria objeto de erro padronizado para respostas.
+    */
+    private Map&lt;String, String&gt; criarErro(String tipo, String mensagem) {
+<span class="fc" id="L314">        Map&lt;String, String&gt; erro = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L315">        erro.put(&quot;erro&quot;, tipo);</span>
+<span class="fc" id="L316">        erro.put(&quot;mensagem&quot;, mensagem);</span>
+<span class="fc" id="L317">        return erro;</span>
+    }
+
+    /*
+        Padroniza respostas de erro com status HTTP correto.
+    */
+    private void responderErro(Context ctx, HttpStatus status, String tipo, String mensagem) {
+<span class="fc" id="L324">        ctx.status(status).json(criarErro(tipo, mensagem));</span>
+<span class="fc" id="L325">    }</span>
+
+    /*
+        Extrai string de um JsonObject com validação.
+    */
+    private String obterString(JsonObject json, String campo) {
+<span class="pc bpc" id="L331" title="1 of 4 branches missed.">        if (!json.has(campo) || json.get(campo).isJsonNull()) {</span>
+<span class="fc" id="L332">            throw new IllegalArgumentException(&quot;Campo '&quot; + campo + &quot;' é obrigatório&quot;);</span>
+        }
+<span class="fc" id="L334">        return json.get(campo).getAsString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

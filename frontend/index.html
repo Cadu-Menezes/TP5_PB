@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP4 - Integrado (Produtos + Pedidos)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TP4 - Sistema Integrado</h1>
+            <p>Gerenciamento de Produtos e Pedidos</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="produtos">Produtos</button>
+            <button class="tab-button" data-tab="pedidos">Pedidos</button>
+        </nav>
+
+        <!-- TAB PRODUTOS -->
+        <div id="produtos" class="tab-content active">
+            <h2>Produtos</h2>
+            
+            <div class="form-section">
+                <h3>Novo Produto</h3>
+                <form id="formProduto">
+                    <div class="form-group">
+                        <label for="produtoNome">Nome:</label>
+                        <input type="text" id="produtoNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="produtoPreco">Preço:</label>
+                        <input type="number" id="produtoPreco" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="produtoCategoria">Categoria:</label>
+                        <input type="text" id="produtoCategoria" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="produtoEstoque">Estoque:</label>
+                        <input type="number" id="produtoEstoque" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Produto</button>
+                </form>
+            </div>
+
+            <div class="list-section">
+                <h3>Lista de Produtos</h3>
+                <div id="produtosList" class="items-grid">
+                    <p>Carregando produtos...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB PEDIDOS -->
+        <div id="pedidos" class="tab-content">
+            <h2>Pedidos</h2>
+
+            <div class="form-section">
+                <h3>Novo Pedido (com Integração)</h3>
+                <form id="formPedido">
+                    <div class="form-group">
+                        <label for="pedidoProdutoId">Produto:</label>
+                        <select id="pedidoProdutoId" required>
+                            <option value="">Selecione um produto...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="pedidoQuantidade">Quantidade:</label>
+                        <input type="number" id="pedidoQuantidade" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pedidoCliente">Nome do Cliente:</label>
+                        <input type="text" id="pedidoCliente" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pedidoObservacao">Observação:</label>
+                        <textarea id="pedidoObservacao"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Pedido (com Decrémento de Estoque)</button>
+                </form>
+            </div>
+
+            <div class="list-section">
+                <h3>Lista de Pedidos</h3>
+                <div id="pedidosList" class="items-grid">
+                    <p>Carregando pedidos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar produto -->
+    <div id="modalEditProduto" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Editar Produto</h3>
+            <form id="formEditProduto">
+                <input type="hidden" id="editProdutoId">
+                <div class="form-group">
+                    <label for="editProdutoNome">Nome:</label>
+                    <input type="text" id="editProdutoNome" required>
+                </div>
+                <div class="form-group">
+                    <label for="editProdutoPreco">Preço:</label>
+                    <input type="number" id="editProdutoPreco" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="editProdutoCategoria">Categoria:</label>
+                    <input type="text" id="editProdutoCategoria" required>
+                </div>
+                <div class="form-group">
+                    <label for="editProdutoEstoque">Estoque:</label>
+                    <input type="number" id="editProdutoEstoque" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Atualizar Produto</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+com\faculdade\pedidos\web\PedidoController.class
+com\faculdade\pedidos\web\PedidoDto.class
+com\faculdade\integrado\web\PedidoIntegradoController$ErrorResponse.class
+com\faculdade\integrado\service\PedidoEstoqueIntegracaoService.class
+com\faculdade\integrado\web\WebServerIntegrado.class
+com\faculdade\pedidos\web\ErroApi.class
+com\faculdade\integrado\web\PedidoIntegradoRequest.class
+com\faculdade\produtos\web\ProdutoController.class
+com\faculdade\integrado\service\ResultadoPedidoIntegrado.class
+com\faculdade\integrado\config\DatabaseConfigIntegrada.class
+com\faculdade\integrado\web\PedidoIntegradoController.class
+com\faculdade\pedidos\web\PedidoRequest.class
+com\faculdade\integrado\AplicacaoIntegrada.class

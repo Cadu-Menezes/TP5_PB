@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP4 - Integrado (Produtos + Pedidos)</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛒 TP4 - Sistema Integrado</h1>
+            <p>Gerenciamento de Produtos e Pedidos</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="produtos">📦 Produtos</button>
+            <button class="tab-button" data-tab="pedidos">📋 Pedidos</button>
+        </nav>
+
+        <!-- TAB PRODUTOS -->
+        <div id="produtos" class="tab-content active">
+            <div class="tab-header">
+                <h2>Produtos</h2>
+                <button class="btn btn-primary btn-lg" onclick="abrirModalCriarProduto()">+ Novo Produto</button>
+            </div>
+
+            <div class="list-section">
+                <div class="table-toolbar">
+                    <div class="toolbar-group">
+                        <label for="filtroProdutoNome">Buscar:</label>
+                        <input type="text" id="filtroProdutoNome" placeholder="Nome ou descrição...">
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="filtroProdutoCategoria">Categoria:</label>
+                        <select id="filtroProdutoCategoria">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="produtosList" class="table-wrapper">
+                    <p class="loading-text">⏳ Carregando produtos...</p>
+                </div>
+
+                <div class="pagination" id="paginacaoProdutos">
+                    <button type="button" class="btn btn-secondary pagination-btn" id="produtosPrev">Anterior</button>
+                    <span class="pagination-info" id="produtosPageInfo">Página 1 de 1</span>
+                    <button type="button" class="btn btn-secondary pagination-btn" id="produtosNext">Próxima</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB PEDIDOS -->
+        <div id="pedidos" class="tab-content">
+            <div class="tab-header">
+                <h2>Pedidos</h2>
+                <button class="btn btn-primary btn-lg" onclick="abrirModalCriarPedido()">+ Novo Pedido</button>
+            </div>
+
+            <div class="list-section">
+                <div class="table-toolbar">
+                    <div class="toolbar-group">
+                        <label for="filtroPedidoCliente">Buscar:</label>
+                        <input type="text" id="filtroPedidoCliente" placeholder="Cliente ou observação...">
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="filtroPedidoStatus">Status:</label>
+                        <select id="filtroPedidoStatus">
+                            <option value="">Todos</option>
+                            <option value="ABERTO">ABERTO</option>
+                            <option value="EM_ANDAMENTO">EM_ANDAMENTO</option>
+                            <option value="CONCLUIDO">CONCLUIDO</option>
+                            <option value="CANCELADO">CANCELADO</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="pedidosList" class="table-wrapper">
+                    <p class="loading-text">⏳ Carregando pedidos...</p>
+                </div>
+
+                <div class="pagination" id="paginacaoPedidos">
+                    <button type="button" class="btn btn-secondary pagination-btn" id="pedidosPrev">Anterior</button>
+                    <span class="pagination-info" id="pedidosPageInfo">Página 1 de 1</span>
+                    <button type="button" class="btn btn-secondary pagination-btn" id="pedidosNext">Próxima</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para criar produto -->
+    <div id="modalCriarProduto" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Criar Novo Produto</h3>
+                <span class="close" onclick="fecharModalCriarProduto()">&times;</span>
+            </div>
+            <form id="formProduto">
+                <div class="form-group">
+                    <label for="produtoNome">Nome:</label>
+                    <input type="text" id="produtoNome" required>
+                </div>
+                <div class="form-group">
+                    <label for="produtoPreco">Preço:</label>
+                    <input type="number" id="produtoPreco" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="produtoCategoria">Categoria:</label>
+                    <select id="produtoCategoria" required>
+                        <option value="">Selecione uma categoria...</option>
+                        <option value="Eletrônicos">Eletrônicos</option>
+                        <option value="Roupas">Roupas</option>
+                        <option value="Livros">Livros</option>
+                        <option value="Casa e Jardim">Casa e Jardim</option>
+                        <option value="Esportes">Esportes</option>
+                        <option value="Beleza">Beleza</option>
+                        <option value="Alimentação">Alimentação</option>
+                        <option value="Brinquedos">Brinquedos</option>
+                        <option value="Ferramentas">Ferramentas</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="produtoDescricao">Descrição:</label>
+                    <textarea id="produtoDescricao" placeholder="Descreva o produto..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="produtoEstoque">Estoque:</label>
+                    <input type="number" id="produtoEstoque" min="1" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalCriarProduto()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para criar pedido -->
+    <div id="modalCriarPedido" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Criar Novo Pedido</h3>
+                <span class="close" onclick="fecharModalCriarPedido()">&times;</span>
+            </div>
+            <form id="formPedido">
+                <div class="form-group">
+                    <label for="pedidoProdutoId">Produto:</label>
+                    <select id="pedidoProdutoId" required>
+                        <option value="">Selecione um produto...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pedidoQuantidade">Quantidade:</label>
+                    <input type="number" id="pedidoQuantidade" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="pedidoCliente">Nome do Cliente:</label>
+                    <input type="text" id="pedidoCliente" required>
+                </div>
+                <div class="form-group">
+                    <label for="pedidoObservacao">Observação:</label>
+                    <textarea id="pedidoObservacao" placeholder="Observações opcionais..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalCriarPedido()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Pedido</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para editar status do pedido -->
+    <div id="modalEditPedido" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Status do Pedido</h3>
+                <span class="close" onclick="fecharModalEditarPedido()">&times;</span>
+            </div>
+            <form id="formEditPedido">
+                <input type="hidden" id="editPedidoId">
+                <input type="hidden" id="editPedidoObservacao">
+
+                <div class="form-group">
+                    <label for="editPedidoCliente">Cliente:</label>
+                    <input type="text" id="editPedidoCliente" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="editPedidoProduto">Produto:</label>
+                    <input type="text" id="editPedidoProduto" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="editPedidoStatus">Status:</label>
+                    <select id="editPedidoStatus" required>
+                        <option value="ABERTO">ABERTO</option>
+                        <option value="EM_ANDAMENTO">EM_ANDAMENTO</option>
+                        <option value="CONCLUIDO">CONCLUIDO</option>
+                        <option value="CANCELADO">CANCELADO</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalEditarPedido()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para editar produto -->
+    <div id="modalEditProduto" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Produto</h3>
+                <span class="close" onclick="fecharModalEditarProduto()">&times;</span>
+            </div>
+            <form id="formEditProduto">
+                <input type="hidden" id="editProdutoId">
+                <div class="form-group">
+                    <label for="editProdutoNome">Nome:</label>
+                    <input type="text" id="editProdutoNome" required>
+                </div>
+                <div class="form-group">
+                    <label for="editProdutoPreco">Preço:</label>
+                    <input type="number" id="editProdutoPreco" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="editProdutoCategoria">Categoria:</label>
+                    <select id="editProdutoCategoria" required>
+                        <option value="">Selecione uma categoria...</option>
+                        <option value="Eletrônicos">Eletrônicos</option>
+                        <option value="Roupas">Roupas</option>
+                        <option value="Livros">Livros</option>
+                        <option value="Casa e Jardim">Casa e Jardim</option>
+                        <option value="Esportes">Esportes</option>
+                        <option value="Beleza">Beleza</option>
+                        <option value="Alimentação">Alimentação</option>
+                        <option value="Brinquedos">Brinquedos</option>
+                        <option value="Ferramentas">Ferramentas</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editProdutoDescricao">Descrição:</label>
+                    <textarea id="editProdutoDescricao" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editProdutoEstoque">Estoque:</label>
+                    <input type="number" id="editProdutoEstoque" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalEditarProduto()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Atualizar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

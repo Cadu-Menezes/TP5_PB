@@ -1,0 +1,12 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+TP4 App Integrado,com.faculdade.integrado.service,ResultadoPedidoIntegrado,0,12,0,0,0,1,0,1,0,1
+TP4 App Integrado,com.faculdade.integrado.service,PedidoEstoqueIntegracaoService,9,57,1,1,3,18,1,2,0,2
+TP4 App Integrado,com.faculdade.pedidos.web,PedidoController,136,247,9,7,32,54,8,9,0,9
+TP4 App Integrado,com.faculdade.pedidos.web,ErroApi,0,11,0,0,0,2,0,2,0,2
+TP4 App Integrado,com.faculdade.pedidos.web,PedidoRequest,0,12,0,0,0,1,0,1,0,1
+TP4 App Integrado,com.faculdade.pedidos.web,PedidoDto,51,0,2,0,9,0,3,0,2,0
+TP4 App Integrado,com.faculdade.produtos.web,ProdutoController,57,702,4,6,12,162,3,20,0,18
+TP4 App Integrado,com.faculdade.integrado.web,PedidoIntegradoRequest,0,18,0,0,0,1,0,1,0,1
+TP4 App Integrado,com.faculdade.integrado.web,PedidoIntegradoController.ErrorResponse,0,6,0,0,0,1,0,1,0,1
+TP4 App Integrado,com.faculdade.integrado.web,WebServerIntegrado,33,285,0,0,10,46,3,11,3,11
+TP4 App Integrado,com.faculdade.integrado.web,PedidoIntegradoController,15,69,1,1,3,20,1,2,0,2

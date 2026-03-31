@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PedidoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">TP4 App Integrado</a> &gt; <a href="index.source.html" class="el_package">com.faculdade.pedidos.web</a> &gt; <span class="el_source">PedidoController.java</span></div><h1>PedidoController.java</h1><pre class="source lang-java linenums">package com.faculdade.pedidos.web;
+
+import com.faculdade.pedidos.exception.NaoEncontradoException;
+import com.faculdade.pedidos.exception.ValidacaoException;
+import com.faculdade.pedidos.model.Pedido;
+import com.faculdade.pedidos.service.PedidoService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/*
+    Controller REST para operações de pedido.
+    Converte requisições HTTP em chamadas ao PedidoService
+    e formata as respostas em JSON.
+*/
+public final class PedidoController {
+
+    private final PedidoService pedidoService;
+    private final Gson gson;
+<span class="fc" id="L27">    private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy HH:mm:ss&quot;);</span>
+
+<span class="fc" id="L29">    public PedidoController(PedidoService pedidoService) {</span>
+<span class="fc" id="L30">        this.pedidoService = pedidoService;</span>
+<span class="fc" id="L31">        this.gson = new GsonBuilder().setPrettyPrinting().create();</span>
+<span class="fc" id="L32">    }</span>
+
+    /*
+        Lista todos os pedidos cadastrados.
+        GET /api/pedidos
+    */
+    public void listar(Context ctx) {
+        try {
+<span class="fc" id="L40">            List&lt;Pedido&gt; pedidos = pedidoService.listarTodos();</span>
+<span class="fc" id="L41">            List&lt;Map&lt;String, Object&gt;&gt; resposta = pedidos.stream()</span>
+<span class="fc" id="L42">                    .map(this::pedidoParaMap)</span>
+<span class="fc" id="L43">                    .collect(Collectors.toList());</span>
+
+<span class="fc" id="L45">            ctx.json(resposta);</span>
+<span class="nc" id="L46">        } catch (Exception e) {</span>
+<span class="nc" id="L47">            System.err.println(&quot;ERRO AO LISTAR PEDIDOS: &quot; + e.getMessage());</span>
+<span class="nc" id="L48">            e.printStackTrace();</span>
+<span class="nc" id="L49">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro ao listar pedidos&quot;, e.getMessage());</span>
+<span class="fc" id="L50">        }</span>
+<span class="fc" id="L51">    }</span>
+
+    /*
+        Cria um novo pedido.
+        POST /api/pedidos
+        Body: { nomeCliente, observacao, status }
+    */
+    public void criar(Context ctx) {
+        try {
+<span class="fc" id="L60">            PedidoRequest request = ctx.bodyAsClass(PedidoRequest.class);</span>
+
+            // Validação de campos obrigatórios
+<span class="pc bpc" id="L63" title="2 of 4 branches missed.">            if (request.nomeCliente() == null || request.nomeCliente().trim().isEmpty()) {</span>
+<span class="nc" id="L64">                responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, &quot;Campo 'nomeCliente' é obrigatório&quot;);</span>
+<span class="nc" id="L65">                return;</span>
+            }
+
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">            String status = request.status() != null ? request.status() : &quot;ABERTO&quot;;</span>
+
+<span class="fc" id="L70">            Pedido pedido = pedidoService.criar(request.nomeCliente(), request.observacao(), status);</span>
+
+<span class="fc" id="L72">            Map&lt;String, Object&gt; resposta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L73">            resposta.put(&quot;id&quot;, pedido.getId().getValue());</span>
+<span class="fc" id="L74">            resposta.put(&quot;mensagem&quot;, &quot;Pedido criado com sucesso&quot;);</span>
+
+<span class="fc" id="L76">            ctx.status(HttpStatus.CREATED).json(resposta);</span>
+
+<span class="fc" id="L78">        } catch (ValidacaoException e) {</span>
+<span class="fc" id="L79">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, e.getMessage());</span>
+<span class="nc" id="L80">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L81">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, e.getMessage());</span>
+<span class="nc" id="L82">        } catch (Exception e) {</span>
+<span class="nc" id="L83">            System.err.println(&quot;ERRO NÃO CAPTURADO EM criar: &quot; + e.getMessage());</span>
+<span class="nc" id="L84">            e.printStackTrace();</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro inesperado&quot;, e.getMessage() != null ? e.getMessage() : &quot;Erro desconhecido&quot;);</span>
+<span class="pc" id="L86">        }</span>
+<span class="fc" id="L87">    }</span>
+
+    /*
+        Atualiza um pedido existente.
+        PUT /api/pedidos/{id}
+        Body: { nomeCliente, observacao, status }
+    */
+    public void atualizar(Context ctx) {
+        try {
+<span class="fc" id="L96">            String id = ctx.pathParam(&quot;id&quot;);</span>
+<span class="fc" id="L97">            PedidoRequest request = ctx.bodyAsClass(PedidoRequest.class);</span>
+
+            // Validação de campos obrigatórios
+<span class="pc bpc" id="L100" title="2 of 4 branches missed.">            if (request.nomeCliente() == null || request.nomeCliente().trim().isEmpty()) {</span>
+<span class="nc" id="L101">                responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, &quot;Campo 'nomeCliente' é obrigatório&quot;);</span>
+<span class="nc" id="L102">                return;</span>
+            }
+
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">            String status = request.status() != null ? request.status() : &quot;ABERTO&quot;;</span>
+
+<span class="fc" id="L107">            Pedido pedido = pedidoService.atualizar(id, request.nomeCliente(), request.observacao(), status);</span>
+
+<span class="fc" id="L109">            Map&lt;String, String&gt; resposta = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L110">            resposta.put(&quot;mensagem&quot;, &quot;Pedido atualizado com sucesso&quot;);</span>
+
+<span class="fc" id="L112">            ctx.json(resposta);</span>
+
+<span class="nc" id="L114">        } catch (NaoEncontradoException e) {</span>
+<span class="nc" id="L115">            responderErro(ctx, HttpStatus.NOT_FOUND, &quot;Pedido não encontrado&quot;, e.getMessage());</span>
+<span class="nc" id="L116">        } catch (ValidacaoException e) {</span>
+<span class="nc" id="L117">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, e.getMessage());</span>
+<span class="nc" id="L118">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L119">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;Dados inválidos&quot;, e.getMessage());</span>
+<span class="nc" id="L120">        } catch (Exception e) {</span>
+<span class="nc" id="L121">            System.err.println(&quot;ERRO AO ATUALIZAR: &quot; + e.getMessage());</span>
+<span class="nc" id="L122">            e.printStackTrace();</span>
+<span class="nc" id="L123">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="pc" id="L124">        }</span>
+<span class="fc" id="L125">    }</span>
+
+    /*
+        Exclui um pedido pelo ID.
+        DELETE /api/pedidos/{id}
+    */
+    public void excluir(Context ctx) {
+        try {
+<span class="fc" id="L133">            String id = ctx.pathParam(&quot;id&quot;);</span>
+<span class="fc" id="L134">            pedidoService.excluir(id);</span>
+<span class="fc" id="L135">            ctx.status(HttpStatus.NO_CONTENT);</span>
+
+<span class="nc" id="L137">        } catch (NaoEncontradoException e) {</span>
+<span class="nc" id="L138">            responderErro(ctx, HttpStatus.NOT_FOUND, &quot;Pedido não encontrado&quot;, e.getMessage());</span>
+<span class="nc" id="L139">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L140">            responderErro(ctx, HttpStatus.BAD_REQUEST, &quot;ID inválido&quot;, e.getMessage());</span>
+<span class="nc" id="L141">        } catch (Exception e) {</span>
+<span class="nc" id="L142">            System.err.println(&quot;ERRO AO EXCLUIR: &quot; + e.getMessage());</span>
+<span class="nc" id="L143">            e.printStackTrace();</span>
+<span class="nc" id="L144">            responderErro(ctx, HttpStatus.INTERNAL_SERVER_ERROR, &quot;Erro interno&quot;, e.getMessage());</span>
+<span class="pc" id="L145">        }</span>
+<span class="fc" id="L146">    }</span>
+
+    // Métodos auxiliares
+
+    /*
+        Converte um Pedido em Map para serialização JSON.
+    */
+    private Map&lt;String, Object&gt; pedidoParaMap(Pedido pedido) {
+<span class="fc" id="L154">        Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L155">        map.put(&quot;id&quot;, pedido.getId().getValue());</span>
+<span class="fc" id="L156">        map.put(&quot;nomeCliente&quot;, pedido.getNomeCliente().getValue());</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">        map.put(&quot;observacao&quot;, pedido.getObservacao() != null ? pedido.getObservacao().getValue() : null);</span>
+<span class="fc" id="L158">        map.put(&quot;status&quot;, pedido.getStatus().name());</span>
+<span class="fc" id="L159">        map.put(&quot;produtoId&quot;, pedido.getProdutoId());</span>
+<span class="fc" id="L160">        map.put(&quot;criadoEm&quot;, pedido.getCriadoEm().format(FORMATO_DATA));</span>
+<span class="fc" id="L161">        map.put(&quot;atualizadoEm&quot;, pedido.getAtualizadoEm().format(FORMATO_DATA));</span>
+<span class="fc" id="L162">        return map;</span>
+    }
+
+    /*
+        Cria objeto de erro padronizado para respostas.
+    */
+    private Map&lt;String, String&gt; criarErro(String tipo, String mensagem) {
+<span class="fc" id="L169">        Map&lt;String, String&gt; erro = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L170">        erro.put(&quot;erro&quot;, tipo);</span>
+<span class="fc" id="L171">        erro.put(&quot;mensagem&quot;, mensagem);</span>
+<span class="fc" id="L172">        return erro;</span>
+    }
+
+    /*
+        Padroniza respostas de erro com status HTTP correto.
+    */
+    private void responderErro(Context ctx, HttpStatus status, String tipo, String mensagem) {
+<span class="fc" id="L179">        ctx.status(status).json(criarErro(tipo, mensagem));</span>
+<span class="fc" id="L180">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

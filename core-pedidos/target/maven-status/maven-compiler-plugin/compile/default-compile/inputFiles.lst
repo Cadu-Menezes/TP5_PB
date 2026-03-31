@@ -1,0 +1,15 @@
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\repository\impl\RepositorioH2Pedido.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\repository\PedidoQueryRepository.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\config\DatabaseMigration.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\repository\impl\RepositorioPostgreSqlPedido.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\model\PedidoId.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\exception\InfraestruturaException.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\model\Observacao.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\repository\PedidoCommandRepository.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\exception\ValidacaoException.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\model\Pedido.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\config\DatabaseConfig.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\model\NomeCliente.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\exception\NaoEncontradoException.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\model\StatusPedido.java
+C:\Users\Dwith\Desktop\Cadu\tp4-integrado\core-pedidos\src\main\java\com\faculdade\pedidos\service\PedidoService.java

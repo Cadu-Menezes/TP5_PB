@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebServerIntegrado.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">TP4 App Integrado</a> &gt; <a href="index.source.html" class="el_package">com.faculdade.integrado.web</a> &gt; <span class="el_source">WebServerIntegrado.java</span></div><h1>WebServerIntegrado.java</h1><pre class="source lang-java linenums">package com.faculdade.integrado.web;
+
+import com.faculdade.integrado.service.PedidoEstoqueIntegracaoService;
+import com.faculdade.pedidos.exception.NaoEncontradoException;
+import com.faculdade.pedidos.exception.ValidacaoException;
+import com.faculdade.pedidos.service.PedidoService;
+import com.faculdade.pedidos.web.ErroApi;
+import com.faculdade.pedidos.web.PedidoController;
+import com.faculdade.produtos.service.ProdutoService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.faculdade.produtos.web.ProdutoController;
+import io.javalin.Javalin;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.HttpStatus;
+import io.javalin.json.JavalinJackson;
+
+public final class WebServerIntegrado {
+
+    private final Javalin app;
+    private final int porta;
+    private int portaEfetiva;
+
+<span class="fc" id="L24">    public WebServerIntegrado(ProdutoService produtoService, PedidoService pedidoService, int porta) {</span>
+<span class="fc" id="L25">        this.porta = porta;</span>
+<span class="fc" id="L26">        this.portaEfetiva = porta;</span>
+<span class="fc" id="L27">        this.app = Javalin.create(config -&gt; {</span>
+<span class="fc" id="L28">            config.plugins.enableCors(cors -&gt; cors.add(it -&gt; it.anyHost()));</span>
+<span class="fc" id="L29">            config.staticFiles.add(&quot;/public&quot;);</span>
+<span class="fc" id="L30">            ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());</span>
+<span class="fc" id="L31">            config.jsonMapper(new JavalinJackson(objectMapper));</span>
+<span class="fc" id="L32">        });</span>
+<span class="fc" id="L33">        registrarRotas(produtoService, pedidoService);</span>
+<span class="fc" id="L34">        registrarTratamentoErros();</span>
+<span class="fc" id="L35">    }</span>
+
+    public void iniciar() {
+<span class="fc" id="L38">        app.start(porta);</span>
+<span class="fc" id="L39">        this.portaEfetiva = app.port();</span>
+<span class="fc" id="L40">    }</span>
+
+    public int getPortaEfetiva() {
+<span class="fc" id="L43">        return portaEfetiva;</span>
+    }
+
+    public void parar() {
+<span class="fc" id="L47">        app.stop();</span>
+<span class="fc" id="L48">    }</span>
+
+    private void registrarRotas(ProdutoService produtoService, PedidoService pedidoService) {
+<span class="fc" id="L51">        ProdutoController produtoController = new ProdutoController(produtoService);</span>
+<span class="fc" id="L52">        PedidoController pedidoController = new PedidoController(pedidoService);</span>
+<span class="fc" id="L53">        PedidoIntegradoController pedidoIntegradoController =</span>
+            new PedidoIntegradoController(new PedidoEstoqueIntegracaoService(produtoService, pedidoService));
+
+<span class="fc" id="L56">        app.get(&quot;/&quot;, ctx -&gt; ctx.redirect(&quot;/index.html&quot;));</span>
+
+<span class="fc" id="L58">        app.get(&quot;/api/produtos/categoria/{categoria}&quot;, produtoController::listarPorCategoria);</span>
+<span class="fc" id="L59">        app.get(&quot;/api/produtos/estoque/baixo&quot;, produtoController::listarEstoqueBaixo);</span>
+<span class="fc" id="L60">        app.get(&quot;/api/categorias&quot;, produtoController::listarCategorias);</span>
+<span class="fc" id="L61">        app.get(&quot;/api/estatisticas&quot;, produtoController::obterEstatisticas);</span>
+<span class="fc" id="L62">        app.get(&quot;/api/produtos&quot;, produtoController::listarTodos);</span>
+<span class="fc" id="L63">        app.get(&quot;/api/produtos/{id}&quot;, produtoController::buscarPorId);</span>
+<span class="fc" id="L64">        app.post(&quot;/api/produtos&quot;, produtoController::criarProduto);</span>
+<span class="fc" id="L65">        app.put(&quot;/api/produtos/{id}&quot;, produtoController::atualizarProduto);</span>
+<span class="fc" id="L66">        app.delete(&quot;/api/produtos/{id}&quot;, produtoController::excluirProduto);</span>
+<span class="fc" id="L67">        app.patch(&quot;/api/produtos/{id}/estoque&quot;, produtoController::atualizarEstoque);</span>
+
+<span class="fc" id="L69">        app.get(&quot;/api/pedidos&quot;, pedidoController::listar);</span>
+<span class="fc" id="L70">        app.post(&quot;/api/pedidos&quot;, pedidoController::criar);</span>
+<span class="fc" id="L71">        app.put(&quot;/api/pedidos/{id}&quot;, pedidoController::atualizar);</span>
+<span class="fc" id="L72">        app.delete(&quot;/api/pedidos/{id}&quot;, pedidoController::excluir);</span>
+
+<span class="fc" id="L74">        app.post(&quot;/api/integrado/pedidos&quot;, pedidoIntegradoController::criarComBaixaEstoque);</span>
+<span class="fc" id="L75">    }</span>
+
+    private void registrarTratamentoErros() {
+<span class="fc" id="L78">        app.exception(BadRequestResponse.class, (e, ctx) -&gt; {</span>
+<span class="nc" id="L79">            ctx.status(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L80">            ctx.json(ErroApi.of(&quot;Requisicao invalida.&quot;));</span>
+<span class="nc" id="L81">        });</span>
+
+<span class="fc" id="L83">        app.exception(ValidacaoException.class, (e, ctx) -&gt; {</span>
+<span class="fc" id="L84">            ctx.status(HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L85">            ctx.json(ErroApi.of(e.getMessage()));</span>
+<span class="fc" id="L86">        });</span>
+
+<span class="fc" id="L88">        app.exception(NaoEncontradoException.class, (e, ctx) -&gt; {</span>
+<span class="nc" id="L89">            ctx.status(HttpStatus.NOT_FOUND);</span>
+<span class="nc" id="L90">            ctx.json(ErroApi.of(e.getMessage()));</span>
+<span class="nc" id="L91">        });</span>
+
+<span class="fc" id="L93">        app.exception(Exception.class, (e, ctx) -&gt; {</span>
+<span class="nc" id="L94">            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L95">            ctx.json(ErroApi.of(&quot;Erro interno no servidor.&quot;));</span>
+<span class="nc" id="L96">            e.printStackTrace();</span>
+<span class="nc" id="L97">        });</span>
+<span class="fc" id="L98">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

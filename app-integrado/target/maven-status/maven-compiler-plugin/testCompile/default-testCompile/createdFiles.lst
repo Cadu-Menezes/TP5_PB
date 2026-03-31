@@ -1,0 +1,8 @@
+com\faculdade\integrado\service\PedidoEstoqueIntegracaoServiceTest.class
+com\faculdade\integrado\support\InMemoryRepositories.class
+com\faculdade\integrado\web\ProdutoControllerErrorPathsTest$FailingProdutoRepository.class
+com\faculdade\integrado\web\ProdutoControllerErrorPathsTest.class
+com\faculdade\integrado\web\TesteSeleniumPosDeploy.class
+com\faculdade\integrado\support\InMemoryRepositories$PedidoRepository.class
+com\faculdade\integrado\support\InMemoryRepositories$ProdutoRepository.class
+com\faculdade\integrado\web\WebServerIntegradoTest.class

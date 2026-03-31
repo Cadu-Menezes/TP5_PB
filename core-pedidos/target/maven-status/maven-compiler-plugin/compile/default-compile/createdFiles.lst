@@ -1,0 +1,15 @@
+com\faculdade\pedidos\repository\impl\RepositorioH2Pedido.class
+com\faculdade\pedidos\exception\ValidacaoException.class
+com\faculdade\pedidos\model\Pedido.class
+com\faculdade\pedidos\repository\PedidoCommandRepository.class
+com\faculdade\pedidos\model\NomeCliente.class
+com\faculdade\pedidos\model\StatusPedido.class
+com\faculdade\pedidos\exception\NaoEncontradoException.class
+com\faculdade\pedidos\config\DatabaseConfig.class
+com\faculdade\pedidos\exception\InfraestruturaException.class
+com\faculdade\pedidos\repository\impl\RepositorioPostgreSqlPedido.class
+com\faculdade\pedidos\service\PedidoService.class
+com\faculdade\pedidos\model\Observacao.class
+com\faculdade\pedidos\repository\PedidoQueryRepository.class
+com\faculdade\pedidos\config\DatabaseMigration.class
+com\faculdade\pedidos\model\PedidoId.class
